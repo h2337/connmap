@@ -48,7 +48,12 @@ int main(int argc, char **argv) {
             draw_point(surface, config->small, range.latitude, range.longitude);
         }
 
-        XNextEvent(x11.display, &event);
+        cairo_surface_flush(surface);
+
+        while (XPending(x11.display)) {
+            XNextEvent(x11.display, &event);
+        }
+
         sleep(config->update_interval);
     }
 

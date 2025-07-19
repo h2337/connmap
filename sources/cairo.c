@@ -35,8 +35,8 @@ void draw_point(cairo_surface_t *surface, bool small, double latitude, double lo
     double width = small ? 500 : 1000;
     double height = small ? 250 : 500;
 
-    uint32_t xOffset = small ? -14 : -29;
-    uint32_t yOffset = small ? 38 : 76;
+    int32_t xOffset = small ? -14 : -29;
+    int32_t yOffset = small ? 38 : 76;
 
     double x = (longitude + 180) * (width / 360) + xOffset;
     double latRad = latitude * PI / 180;
