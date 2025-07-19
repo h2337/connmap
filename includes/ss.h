@@ -5,4 +5,3 @@ void refreshConnections();
 char *getConnection();
 
 #endif
-

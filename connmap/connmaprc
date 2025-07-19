@@ -1,5 +1,5 @@
 location_x 20
 location_y 500
-small true
+map_width 1000
 black false
 update_interval 1

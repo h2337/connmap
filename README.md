@@ -38,13 +38,17 @@ Installation will create `~/.config/connmap/connmaprc`. Default `connmaprc` look
 ```
 location_x 20
 location_y 500
-small true
+map_width 1000
 black false
 update_interval 1
 ```
 - `location_x`/`location_y` specifies the widget location in your desktop.
 
-- Setting `small` to false will resize widget from 500px/250px to 1000px/500px.
+- `map_width` specifies the custom pixel width of the map. Height is automatically calculated as width/2. Examples:
+  - `map_width 500` creates a 500×250px map
+  - `map_width 1000` creates a 1000×500px map
+  - `map_width 1500` creates a 1500×750px map
+  - `map_width 2000` creates a 2000×1000px map
 
 - Setting `black` to true will draw map outline in black instead of white.
 

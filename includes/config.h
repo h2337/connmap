@@ -10,14 +10,13 @@
 #define COORDINATESFILE "/.config/connmap/resources/coordinates.csv"
 
 typedef struct Config {
-    uint32_t location_x;
-    uint32_t location_y;
-    bool small;
-    bool black;
-    uint32_t update_interval;
+  uint32_t location_x;
+  uint32_t location_y;
+  uint32_t map_width;
+  bool black;
+  uint32_t update_interval;
 } Config;
 
 Config *readConfig();
 
 #endif
-
