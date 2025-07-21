@@ -22,8 +22,24 @@ int main(int argc, char **argv) {
   }
 
   char mapFilename[256];
-  strcat(strcpy(mapFilename, getenv("HOME")), RESOURCES);
-  strcat(mapFilename, mapName);
+  const char *home = getenv("HOME");
+  if (!home) {
+    fprintf(stderr, "HOME environment variable not set\n");
+    return 1;
+  }
+
+  if (strlen(home) > 200) {
+    fprintf(stderr,
+            "HOME environment variable too long (max 200 characters)\n");
+    return 1;
+  }
+
+  int ret = snprintf(mapFilename, sizeof(mapFilename), "%s%s%s", home,
+                     RESOURCES, mapName);
+  if (ret >= sizeof(mapFilename)) {
+    fprintf(stderr, "Path too long: %s%s%s\n", home, RESOURCES, mapName);
+    return 1;
+  }
 
   initIPDatabase();
   X11Details x11 =
