@@ -59,3 +59,9 @@ update_interval 1
 - Tested only with i3wm, might not work as expected in other DE/WM.
 
 - Only IPv4 is supported.
+
+## License
+MIT-licensed.
+
+This product includes GeoLite2 Data created by MaxMind, available from https://www.maxmind.com
+
