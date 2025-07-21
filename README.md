@@ -30,7 +30,7 @@ Installation for Arch Linux:
 sudo pacman -S --needed iproute2 libx11 libxext libxfixes cairo unzip
 ```
 
-Installation for Ubuntu:
+Installation for Debian/Ubuntu:
 ```
 sudo apt install iproute2 libx11-dev libxext-dev libxfixes-dev libcairo2-dev unzip
 ```
