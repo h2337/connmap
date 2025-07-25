@@ -9,7 +9,7 @@ char ip[16];
 
 void refreshConnections() {
   ssOutput =
-      popen("ss -atun4 | grep ESTAB | awk '{print $6}' | cut -f1 -d\":\"", "r");
+      popen("ss -atun4  | awk '$2==\"ESTAB\" {split($6,a,\":\"); print a[1]}'", "r");
 
   if (ssOutput == NULL) {
     printf("Failed to run ss command\n");
