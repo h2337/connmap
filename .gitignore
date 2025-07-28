@@ -1,4 +1,6 @@
 build/
 connmap.elf
+connmap-cpp.elf
 connmap.debug.elf
 connmap/resources/ipv4.csv
+cpp/obj
