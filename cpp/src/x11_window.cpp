@@ -41,9 +41,11 @@ bool X11Window::init() {
   attrs.colormap = XCreateColormap(display, root, vinfo.visual, AllocNone);
   attrs.background_pixel = 0;
   attrs.border_pixel = 0;
+  attrs.background_pixmap = None;
   attrs.override_redirect = True;
 
-  unsigned long value_mask = CWColormap | CWBackPixel | CWBorderPixel;
+  unsigned long value_mask =
+      CWColormap | CWBackPixel | CWBorderPixel | CWBackPixmap;
 
   // Check if we should disable override redirect for certain DEs
   bool disable_override_redirect = false;

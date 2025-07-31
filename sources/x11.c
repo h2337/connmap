@@ -162,8 +162,10 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   attrs.override_redirect = disable_redirect_override ? False : True;
   attrs.background_pixel = 0;
   attrs.border_pixel = 0;
+  attrs.background_pixmap = None;
 
-  unsigned long value_mask = CWColormap | CWBackPixel | CWBorderPixel;
+  unsigned long value_mask =
+      CWColormap | CWBackPixel | CWBorderPixel | CWBackPixmap;
   if (!disable_redirect_override) {
     value_mask |= CWOverrideRedirect;
   }
