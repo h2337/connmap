@@ -12,120 +12,178 @@
 #include <stdlib.h>
 #include <string.h>
 
-X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
-                   uint32_t size_y) {
-  bool disable_redirect_override = False;
-  char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
-  if (xdg_current_desktop != NULL && strlen(xdg_current_desktop) > 0) {
-    for (; *xdg_current_desktop; ++xdg_current_desktop)
-      *xdg_current_desktop = tolower(*xdg_current_desktop);
-    if (strstr("kde", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("gnome", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("xfce", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("lxde", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("lxqt", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("mate", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("enlightenment", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("deepin", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
-    if (strstr("cinnamon", xdg_current_desktop) != NULL)
-      disable_redirect_override = True;
+#define MAX_DESKTOP_NAME_LEN 256
+#define WINDOW_OPACITY_DEFAULT 0.99
+
+static const char *supported_desktop_environments[] = {
+    "kde",  "gnome",         "xfce",   "lxde",    "lxqt",
+    "mate", "enlightenment", "deepin", "cinnamon"};
+
+static const int num_supported_desktops =
+    sizeof(supported_desktop_environments) /
+    sizeof(supported_desktop_environments[0]);
+
+static bool is_supported_desktop_environment(const char *desktop) {
+  if (!desktop || !*desktop) {
+    return false;
   }
 
-  Display *display = XOpenDisplay(NULL);
+  char desktop_lower[MAX_DESKTOP_NAME_LEN];
+  strncpy(desktop_lower, desktop, sizeof(desktop_lower) - 1);
+  desktop_lower[sizeof(desktop_lower) - 1] = '\0';
 
+  for (char *p = desktop_lower; *p; ++p) {
+    *p = tolower(*p);
+  }
+
+  for (int i = 0; i < num_supported_desktops; i++) {
+    if (strstr(desktop_lower, supported_desktop_environments[i]) != NULL) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool setup_window_properties(Display *display, Window window,
+                                    bool is_desktop_environment) {
+  Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+  if (window_type == None) {
+    fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE atom\n");
+    return false;
+  }
+
+  if (is_desktop_environment) {
+    Atom window_type_dock =
+        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    if (window_type_dock == None) {
+      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DOCK atom\n");
+      return false;
+    }
+
+    if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&window_type_dock,
+                        1) != Success) {
+      fprintf(stderr, "Failed to set window type to dock\n");
+      return false;
+    }
+
+    Atom window_state = XInternAtom(display, "_NET_WM_STATE", False);
+    Atom window_state_below =
+        XInternAtom(display, "_NET_WM_STATE_BELOW", False);
+    Atom window_state_sticky =
+        XInternAtom(display, "_NET_WM_STATE_STICKY", False);
+    Atom window_state_skip_taskbar =
+        XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", False);
+    Atom window_state_skip_pager =
+        XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", False);
+
+    if (window_state == None || window_state_below == None ||
+        window_state_sticky == None || window_state_skip_taskbar == None ||
+        window_state_skip_pager == None) {
+      fprintf(stderr, "Failed to get window state atoms\n");
+      return false;
+    }
+
+    Atom states[] = {window_state_below, window_state_sticky,
+                     window_state_skip_taskbar, window_state_skip_pager};
+
+    if (XChangeProperty(display, window, window_state, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)states,
+                        4) != Success) {
+      fprintf(stderr, "Failed to set window states\n");
+      return false;
+    }
+
+    Atom strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
+    if (strut_partial != None) {
+      unsigned long strut[12] = {0};
+      XChangeProperty(display, window, strut_partial, XA_CARDINAL, 32,
+                      PropModeReplace, (unsigned char *)strut, 12);
+    }
+  } else {
+    Atom window_type_desktop =
+        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    if (window_type_desktop == None) {
+      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DESKTOP atom\n");
+      return false;
+    }
+
+    if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
+                        PropModeReplace, (unsigned char *)&window_type_desktop,
+                        1) != Success) {
+      fprintf(stderr, "Failed to set window type to desktop\n");
+      return false;
+    }
+  }
+
+  unsigned long opacity =
+      (unsigned long)(0xFFFFFFFFul * WINDOW_OPACITY_DEFAULT);
+  Atom window_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+  if (window_opacity != None) {
+    XChangeProperty(display, window, window_opacity, XA_CARDINAL, 32,
+                    PropModeReplace, (unsigned char *)&opacity, 1);
+  }
+
+  return true;
+}
+
+X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
+                   uint32_t size_y) {
+  X11Details result = {.display = NULL, .window = 0};
+
+  if (size_x == 0 || size_y == 0) {
+    fprintf(stderr, "Invalid window size: %ux%u\n", size_x, size_y);
+    return result;
+  }
+
+  char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+  bool disable_redirect_override =
+      is_supported_desktop_environment(xdg_current_desktop);
+
+  Display *display = XOpenDisplay(NULL);
   if (display == NULL) {
-    printf("\nCannot connect to X server\n");
-    exit(1);
+    fprintf(stderr, "Cannot connect to X server\n");
+    return result;
   }
 
   int screen = XDefaultScreen(display);
   Window root = DefaultRootWindow(display);
 
   XVisualInfo vinfo;
-  XMatchVisualInfo(display, screen, 32, TrueColor, &vinfo);
+  if (!XMatchVisualInfo(display, screen, 32, TrueColor, &vinfo)) {
+    fprintf(stderr, "No matching visual info found\n");
+    XCloseDisplay(display);
+    return result;
+  }
 
   XSetWindowAttributes attrs;
   attrs.colormap = XCreateColormap(display, root, vinfo.visual, AllocNone);
-  attrs.override_redirect = 1;
+  attrs.override_redirect = disable_redirect_override ? False : True;
   attrs.background_pixel = 0;
   attrs.border_pixel = 0;
 
   unsigned long value_mask = CWColormap | CWBackPixel | CWBorderPixel;
-  if (!disable_redirect_override) value_mask |= CWOverrideRedirect;
+  if (!disable_redirect_override) {
+    value_mask |= CWOverrideRedirect;
+  }
 
   Window window =
       XCreateWindow(display, root, location_x, location_y, size_x, size_y, 0,
                     vinfo.depth, InputOutput, vinfo.visual, value_mask, &attrs);
 
+  if (window == 0) {
+    fprintf(stderr, "Failed to create window\n");
+    XFreeColormap(display, attrs.colormap);
+    XCloseDisplay(display);
+    return result;
+  }
+
   if (disable_redirect_override) {
-    Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", 0);
-
-    bool is_desktop_environment = False;
-    char *desktop_check = getenv("XDG_CURRENT_DESKTOP");
-    if (desktop_check != NULL && strlen(desktop_check) > 0) {
-      char desktop_copy[256];
-      strncpy(desktop_copy, desktop_check, sizeof(desktop_copy) - 1);
-      desktop_copy[sizeof(desktop_copy) - 1] = '\0';
-
-      for (char *p = desktop_copy; *p; ++p) *p = tolower(*p);
-
-      if (strstr(desktop_copy, "kde") != NULL ||
-          strstr(desktop_copy, "gnome") != NULL ||
-          strstr(desktop_copy, "xfce") != NULL ||
-          strstr(desktop_copy, "lxde") != NULL ||
-          strstr(desktop_copy, "lxqt") != NULL ||
-          strstr(desktop_copy, "mate") != NULL ||
-          strstr(desktop_copy, "enlightenment") != NULL ||
-          strstr(desktop_copy, "deepin") != NULL ||
-          strstr(desktop_copy, "cinnamon") != NULL) {
-        is_desktop_environment = True;
-      }
+    bool is_desktop_env = is_supported_desktop_environment(xdg_current_desktop);
+    if (!setup_window_properties(display, window, is_desktop_env)) {
+      fprintf(stderr, "Warning: Failed to set some window properties\n");
     }
-
-    if (is_desktop_environment) {
-      Atom window_type_dock =
-          XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", 0);
-      XChangeProperty(display, window, window_type, XA_ATOM, 32,
-                      PropModeReplace, (unsigned char *)&window_type_dock, 1);
-
-      Atom window_state = XInternAtom(display, "_NET_WM_STATE", 0);
-      Atom window_state_below = XInternAtom(display, "_NET_WM_STATE_BELOW", 0);
-      Atom window_state_sticky =
-          XInternAtom(display, "_NET_WM_STATE_STICKY", 0);
-      Atom window_state_skip_taskbar =
-          XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", 0);
-      Atom window_state_skip_pager =
-          XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", 0);
-      Atom states[] = {window_state_below, window_state_sticky,
-                       window_state_skip_taskbar, window_state_skip_pager};
-      XChangeProperty(display, window, window_state, XA_ATOM, 32,
-                      PropModeReplace, (unsigned char *)states, 4);
-
-      Atom strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", 0);
-      unsigned long strut[12] = {0};
-      XChangeProperty(display, window, strut_partial, XA_CARDINAL, 32,
-                      PropModeReplace, (unsigned char *)strut, 12);
-    } else {
-      Atom window_type_desktop =
-          XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", 0);
-      XChangeProperty(display, window, window_type, XA_ATOM, 32,
-                      PropModeReplace, (unsigned char *)&window_type_desktop,
-                      1);
-    }
-
-    double alpha = 0.99;
-    unsigned long opacity = (unsigned long)(0xFFFFFFFFul * alpha);
-    Atom window_opacity = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
-    XChangeProperty(display, window, window_opacity, XA_CARDINAL, 32,
-                    PropModeReplace, (unsigned char *)&opacity, 1);
   }
 
   XMapWindow(display, window);
@@ -134,11 +192,34 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
                ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
   XClassHint *xch = XAllocClassHint();
-  xch->res_name = "connmap";
-  xch->res_class = "connmap";
-  XSetClassHint(display, window, xch);
+  if (xch != NULL) {
+    xch->res_name = "connmap";
+    xch->res_class = "connmap";
+    XSetClassHint(display, window, xch);
+    XFree(xch);
+  }
 
-  if (!disable_redirect_override) XLowerWindow(display, window);
+  if (!disable_redirect_override) {
+    XLowerWindow(display, window);
+  }
 
-  return (X11Details){.display = display, .window = window, .vinfo = vinfo};
+  result.display = display;
+  result.window = window;
+  result.vinfo = vinfo;
+
+  return result;
+}
+
+void cleanupX11(X11Details *x11) {
+  if (!x11 || !x11->display) {
+    return;
+  }
+
+  if (x11->window) {
+    XDestroyWindow(x11->display, x11->window);
+    x11->window = 0;
+  }
+
+  XCloseDisplay(x11->display);
+  x11->display = NULL;
 }

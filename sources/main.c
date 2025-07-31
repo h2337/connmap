@@ -119,12 +119,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  Display *display = cairo_xlib_surface_get_display(surface);
   cairo_surface_destroy(surface);
 
   XFreeCursor(x11.display, normal_cursor);
   XFreeCursor(x11.display, drag_cursor);
 
-  XCloseDisplay(display);
+  cleanupX11(&x11);
   return 0;
 }
