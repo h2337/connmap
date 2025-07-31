@@ -9,9 +9,9 @@
 
 void draw_invisible_point(cairo_surface_t *surface) {
   cairo_t *context = cairo_create(surface);
-  cairo_set_source_rgba(context, 0, 0, 0, 1);
+  cairo_set_source_rgba(context, 0, 0, 0, 0.01);
   cairo_set_line_width(context, 1.0);
-  cairo_arc(context, 0, 0, 1.0, 0, 2 * 3.14);
+  cairo_rectangle(context, 0, 0, 1, 1);
   cairo_fill(context);
   cairo_destroy(context);
 }
@@ -32,7 +32,6 @@ void draw_world(cairo_surface_t *surface, char *mapFilename, int target_width,
   cairo_paint(context);
   cairo_surface_destroy(world);
   cairo_destroy(context);
-  draw_invisible_point(surface);
 }
 
 void draw_point(cairo_surface_t *surface, int map_width, double latitude,
@@ -59,11 +58,15 @@ void draw_point(cairo_surface_t *surface, int map_width, double latitude,
   cairo_destroy(context);
 }
 
-void clear_surface(cairo_surface_t *surface) {
+void clear_surface(cairo_surface_t *surface, bool under_wayland) {
   cairo_t *context = cairo_create(surface);
-  cairo_set_source_rgba(context, 0, 0, 0, 0);
+  if (under_wayland) {
+    cairo_set_source_rgba(context, 0, 0, 0, 1);
+  } else {
+    cairo_set_source_rgba(context, 0, 0, 0, 0);
+  }
   cairo_set_operator(context, CAIRO_OPERATOR_SOURCE);
   cairo_paint(context);
+  cairo_set_operator(context, CAIRO_OPERATOR_OVER);
   cairo_destroy(context);
-  draw_invisible_point(surface);
 }

@@ -13,7 +13,7 @@
 #include <string.h>
 
 #define MAX_DESKTOP_NAME_LEN 256
-#define WINDOW_OPACITY_DEFAULT 0.99
+#define WINDOW_OPACITY_DEFAULT 1.0
 
 static const char *supported_desktop_environments[] = {
     "kde",  "gnome",         "xfce",   "lxde",    "lxqt",
@@ -43,6 +43,14 @@ static bool is_supported_desktop_environment(const char *desktop) {
   }
 
   return false;
+}
+
+static bool is_running_under_wayland() {
+  const char *wayland_display = getenv("WAYLAND_DISPLAY");
+  const char *xdg_session_type = getenv("XDG_SESSION_TYPE");
+
+  return (wayland_display && *wayland_display) ||
+         (xdg_session_type && strcasecmp(xdg_session_type, "wayland") == 0);
 }
 
 static bool setup_window_properties(Display *display, Window window,
@@ -155,6 +163,7 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
   bool disable_redirect_override =
       is_supported_desktop_environment(xdg_current_desktop);
+  bool under_wayland = is_running_under_wayland();
 
   Display *display = XOpenDisplay(NULL);
   if (display == NULL) {
@@ -175,12 +184,17 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   XSetWindowAttributes attrs;
   attrs.colormap = XCreateColormap(display, root, vinfo.visual, AllocNone);
   attrs.override_redirect = disable_redirect_override ? False : True;
-  attrs.background_pixel = 0;
+  attrs.background_pixel = under_wayland ? BlackPixel(display, screen) : 0;
   attrs.border_pixel = 0;
   attrs.background_pixmap = None;
+  attrs.backing_store = under_wayland ? Always : NotUseful;
+  attrs.save_under = under_wayland ? True : False;
+  attrs.event_mask = ExposureMask | KeyPressMask | ButtonPressMask |
+                     ButtonReleaseMask | PointerMotionMask;
 
-  unsigned long value_mask =
-      CWColormap | CWBackPixel | CWBorderPixel | CWBackPixmap;
+  unsigned long value_mask = CWColormap | CWBackPixel | CWBorderPixel |
+                             CWBackPixmap | CWBackingStore | CWSaveUnder |
+                             CWEventMask;
   if (!disable_redirect_override) {
     value_mask |= CWOverrideRedirect;
   }
@@ -208,6 +222,8 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   XClearWindow(display, window);
 
   XSetWindowColormap(display, window, attrs.colormap);
+
+  XSync(display, False);
   XFlush(display);
 
   XSelectInput(display, window,
@@ -228,6 +244,7 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   result.display = display;
   result.window = window;
   result.vinfo = vinfo;
+  result.under_wayland = under_wayland;
 
   return result;
 }
