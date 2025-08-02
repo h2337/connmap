@@ -13,7 +13,7 @@
 #include <string.h>
 
 #define MAX_DESKTOP_NAME_LEN 256
-#define WINDOW_OPACITY_DEFAULT 1.0
+#define WINDOW_OPACITY_DEFAULT 0.99
 
 static const char *supported_desktop_environments[] = {
     "kde",  "gnome",         "xfce",   "lxde",    "lxqt",
@@ -58,7 +58,6 @@ static bool setup_window_properties(Display *display, Window window,
   Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
   if (window_type == None) {
     fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE atom\n");
-    return false;
   }
 
   if (is_desktop_environment) {
@@ -66,14 +65,12 @@ static bool setup_window_properties(Display *display, Window window,
         XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
     if (window_type_desktop == None) {
       fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DESKTOP atom\n");
-      return false;
     }
 
     if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
                         PropModeReplace, (unsigned char *)&window_type_desktop,
                         1) != Success) {
       fprintf(stderr, "Failed to set window type to desktop\n");
-      return false;
     }
 
     Atom window_state = XInternAtom(display, "_NET_WM_STATE", False);
@@ -90,7 +87,6 @@ static bool setup_window_properties(Display *display, Window window,
         window_state_sticky == None || window_state_skip_taskbar == None ||
         window_state_skip_pager == None) {
       fprintf(stderr, "Failed to get window state atoms\n");
-      return false;
     }
 
     Atom states[] = {window_state_below, window_state_sticky,
@@ -100,7 +96,6 @@ static bool setup_window_properties(Display *display, Window window,
                         PropModeReplace, (unsigned char *)states,
                         4) != Success) {
       fprintf(stderr, "Failed to set window states\n");
-      return false;
     }
 
     Atom strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
@@ -129,14 +124,12 @@ static bool setup_window_properties(Display *display, Window window,
         XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
     if (window_type_desktop == None) {
       fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DESKTOP atom\n");
-      return false;
     }
 
     if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
                         PropModeReplace, (unsigned char *)&window_type_desktop,
                         1) != Success) {
       fprintf(stderr, "Failed to set window type to desktop\n");
-      return false;
     }
   }
 
