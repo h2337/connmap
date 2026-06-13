@@ -67,26 +67,59 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
 
   if (disable_redirect_override) {
     Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", 0);
-    Atom window_type_dock = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", 0);
-    XChangeProperty(display, window, window_type, XA_ATOM, 32, PropModeReplace,
-                    (unsigned char *)&window_type_dock, 1);
 
-    Atom window_state = XInternAtom(display, "_NET_WM_STATE", 0);
-    Atom window_state_below = XInternAtom(display, "_NET_WM_STATE_BELOW", 0);
-    Atom window_state_sticky = XInternAtom(display, "_NET_WM_STATE_STICKY", 0);
-    Atom window_state_skip_taskbar =
-        XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", 0);
-    Atom window_state_skip_pager =
-        XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", 0);
-    Atom states[] = {window_state_below, window_state_sticky,
-                     window_state_skip_taskbar, window_state_skip_pager};
-    XChangeProperty(display, window, window_state, XA_ATOM, 32, PropModeReplace,
-                    (unsigned char *)states, 4);
+    bool is_desktop_environment = False;
+    char *desktop_check = getenv("XDG_CURRENT_DESKTOP");
+    if (desktop_check != NULL && strlen(desktop_check) > 0) {
+      char desktop_copy[256];
+      strncpy(desktop_copy, desktop_check, sizeof(desktop_copy) - 1);
+      desktop_copy[sizeof(desktop_copy) - 1] = '\0';
 
-    Atom strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", 0);
-    unsigned long strut[12] = {0};
-    XChangeProperty(display, window, strut_partial, XA_CARDINAL, 32,
-                    PropModeReplace, (unsigned char *)strut, 12);
+      for (char *p = desktop_copy; *p; ++p) *p = tolower(*p);
+
+      if (strstr(desktop_copy, "kde") != NULL ||
+          strstr(desktop_copy, "gnome") != NULL ||
+          strstr(desktop_copy, "xfce") != NULL ||
+          strstr(desktop_copy, "lxde") != NULL ||
+          strstr(desktop_copy, "lxqt") != NULL ||
+          strstr(desktop_copy, "mate") != NULL ||
+          strstr(desktop_copy, "enlightenment") != NULL ||
+          strstr(desktop_copy, "deepin") != NULL ||
+          strstr(desktop_copy, "cinnamon") != NULL) {
+        is_desktop_environment = True;
+      }
+    }
+
+    if (is_desktop_environment) {
+      Atom window_type_dock =
+          XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", 0);
+      XChangeProperty(display, window, window_type, XA_ATOM, 32,
+                      PropModeReplace, (unsigned char *)&window_type_dock, 1);
+
+      Atom window_state = XInternAtom(display, "_NET_WM_STATE", 0);
+      Atom window_state_below = XInternAtom(display, "_NET_WM_STATE_BELOW", 0);
+      Atom window_state_sticky =
+          XInternAtom(display, "_NET_WM_STATE_STICKY", 0);
+      Atom window_state_skip_taskbar =
+          XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", 0);
+      Atom window_state_skip_pager =
+          XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", 0);
+      Atom states[] = {window_state_below, window_state_sticky,
+                       window_state_skip_taskbar, window_state_skip_pager};
+      XChangeProperty(display, window, window_state, XA_ATOM, 32,
+                      PropModeReplace, (unsigned char *)states, 4);
+
+      Atom strut_partial = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", 0);
+      unsigned long strut[12] = {0};
+      XChangeProperty(display, window, strut_partial, XA_CARDINAL, 32,
+                      PropModeReplace, (unsigned char *)strut, 12);
+    } else {
+      Atom window_type_desktop =
+          XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", 0);
+      XChangeProperty(display, window, window_type, XA_ATOM, 32,
+                      PropModeReplace, (unsigned char *)&window_type_desktop,
+                      1);
+    }
 
     double alpha = 0.99;
     unsigned long opacity = (unsigned long)(0xFFFFFFFFul * alpha);
