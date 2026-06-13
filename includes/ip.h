@@ -4,14 +4,13 @@
 #include <stdint.h>
 
 typedef struct IPRange {
-    uint64_t start;
-    uint64_t end;
-    double latitude;
-    double longitude;
+  uint64_t start;
+  uint64_t end;
+  double latitude;
+  double longitude;
 } IPRange;
 
 void initIPDatabase();
 IPRange getCoordinates(char *ip);
 
 #endif
-

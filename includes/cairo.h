@@ -5,9 +5,10 @@
 #include <cairo/cairo-xlib.h>
 #include <stdbool.h>
 
-void draw_world(cairo_surface_t *surface, char *mapName);
-void draw_point(cairo_surface_t *surface, bool small, double latitude, double longitude);
+void draw_world(cairo_surface_t *surface, char *mapName, int target_width,
+                int target_height);
+void draw_point(cairo_surface_t *surface, int map_width, double latitude,
+                double longitude);
 void clear_surface(cairo_surface_t *surface);
 
 #endif
-
