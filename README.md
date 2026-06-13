@@ -1,3 +1,5 @@
+<img align="right" src="https://raw.githubusercontent.com/h2337/connmap/refs/heads/master/logo.svg">
+
 # connmap
 connmap is an X11 desktop widget that shows location of your current network peers on a world map.
 (Works on Wayland as well!)
