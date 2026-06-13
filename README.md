@@ -42,7 +42,7 @@ map_width 1000
 black false
 update_interval 1
 ```
-- `location_x`/`location_y` specifies the widget location in your desktop.
+- `location_x`/`location_y` specifies the initial widget location in your desktop (you can later drag/drop the widget with mouse if you are not using a desktop environment that treats mouse drag as multi-select).
 
 - `map_width` specifies the custom pixel width of the map. Height is automatically calculated as width/2. Examples:
   - `map_width 500` creates a 500×250px map
