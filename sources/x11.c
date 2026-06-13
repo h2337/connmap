@@ -81,10 +81,8 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
 
   XMapWindow(display, window);
 
-  XRectangle rect;
-  XserverRegion region = XFixesCreateRegion(display, &rect, 1);
-  XFixesSetWindowShapeRegion(display, window, ShapeInput, 0, 0, region);
-  XFixesDestroyRegion(display, region);
+  XSelectInput(display, window,
+               ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
 
   XClassHint *xch = XAllocClassHint();
   xch->res_name = "connmap";
