@@ -3,12 +3,14 @@
 
 #include <X11/Xlib.h>
 #include <X11/extensions/shape.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct X11Details {
   Display *display;
   Window window;
   XVisualInfo vinfo;
+  bool under_wayland;
 } X11Details;
 
 X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,

@@ -44,9 +44,12 @@ int main(int argc, char **argv) {
   initIPDatabase();
   X11Details x11 =
       initX11(config->location_x, config->location_y, size_x, size_y);
-  cairo_surface_t *surface = cairo_xlib_surface_create(
+  cairo_surface_t *xlib_surface = cairo_xlib_surface_create(
       x11.display, x11.window, x11.vinfo.visual, size_x, size_y);
-  cairo_xlib_surface_set_size(surface, size_x, size_y);
+  cairo_xlib_surface_set_size(xlib_surface, size_x, size_y);
+
+  cairo_surface_t *buffer_surface = cairo_surface_create_similar(
+      xlib_surface, CAIRO_CONTENT_COLOR_ALPHA, size_x, size_y);
 
   XEvent event;
   int drag_start_x = 0, drag_start_y = 0;
@@ -59,8 +62,8 @@ int main(int argc, char **argv) {
   XDefineCursor(x11.display, x11.window, normal_cursor);
 
   while (1) {
-    clear_surface(surface);
-    draw_world(surface, mapFilename, size_x, size_y);
+    clear_surface(buffer_surface, x11.under_wayland);
+    draw_world(buffer_surface, mapFilename, size_x, size_y);
 
     refreshConnections();
 
@@ -68,10 +71,17 @@ int main(int argc, char **argv) {
     while ((ip = getConnection()) != NULL) {
       IPRange range = getCoordinates(ip);
       if (range.start == 0) continue;
-      draw_point(surface, size_x, range.latitude, range.longitude);
+      draw_point(buffer_surface, size_x, range.latitude, range.longitude);
     }
 
-    cairo_surface_flush(surface);
+    cairo_t *cr = cairo_create(xlib_surface);
+    cairo_set_source_surface(cr, buffer_surface, 0, 0);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+
+    cairo_surface_flush(xlib_surface);
+    XSync(x11.display, False);
 
     while (XPending(x11.display)) {
       XNextEvent(x11.display, &event);
@@ -119,7 +129,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  cairo_surface_destroy(surface);
+  cairo_surface_destroy(buffer_surface);
+  cairo_surface_destroy(xlib_surface);
 
   XFreeCursor(x11.display, normal_cursor);
   XFreeCursor(x11.display, drag_cursor);
