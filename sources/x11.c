@@ -54,17 +54,17 @@ static bool setup_window_properties(Display *display, Window window,
   }
 
   if (is_desktop_environment) {
-    Atom window_type_dock =
-        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    if (window_type_dock == None) {
-      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DOCK atom\n");
+    Atom window_type_desktop =
+        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    if (window_type_desktop == None) {
+      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DESKTOP atom\n");
       return false;
     }
 
     if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
-                        PropModeReplace, (unsigned char *)&window_type_dock,
+                        PropModeReplace, (unsigned char *)&window_type_desktop,
                         1) != Success) {
-      fprintf(stderr, "Failed to set window type to dock\n");
+      fprintf(stderr, "Failed to set window type to desktop\n");
       return false;
     }
 

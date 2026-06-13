@@ -113,11 +113,11 @@ void X11Window::setupWindowPropertiesForDE() {
   Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
 
   if (isDesktopEnvironment()) {
-    // Use dock type for desktop environments
-    Atom window_type_dock =
-        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    // Use desktop type for desktop environments to stay at bottom layer
+    Atom window_type_desktop =
+        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
     XChangeProperty(display, window, window_type, XA_ATOM, 32, PropModeReplace,
-                    (unsigned char*)&window_type_dock, 1);
+                    (unsigned char*)&window_type_desktop, 1);
 
     // Set window states
     Atom window_state = XInternAtom(display, "_NET_WM_STATE", False);
