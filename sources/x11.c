@@ -54,17 +54,17 @@ static bool setup_window_properties(Display *display, Window window,
   }
 
   if (is_desktop_environment) {
-    Atom window_type_normal =
-        XInternAtom(display, "_NET_WM_WINDOW_TYPE_NORMAL", False);
-    if (window_type_normal == None) {
-      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_NORMAL atom\n");
+    Atom window_type_desktop =
+        XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    if (window_type_desktop == None) {
+      fprintf(stderr, "Failed to get _NET_WM_WINDOW_TYPE_DESKTOP atom\n");
       return false;
     }
 
     if (XChangeProperty(display, window, window_type, XA_ATOM, 32,
-                        PropModeReplace, (unsigned char *)&window_type_normal,
+                        PropModeReplace, (unsigned char *)&window_type_desktop,
                         1) != Success) {
-      fprintf(stderr, "Failed to set window type to normal\n");
+      fprintf(stderr, "Failed to set window type to desktop\n");
       return false;
     }
 
@@ -100,6 +100,21 @@ static bool setup_window_properties(Display *display, Window window,
       unsigned long strut[12] = {0};
       XChangeProperty(display, window, strut_partial, XA_CARDINAL, 32,
                       PropModeReplace, (unsigned char *)strut, 12);
+    }
+
+    Atom kde_force_comp =
+        XInternAtom(display, "_KDE_NET_WM_FORCE_SHADOW", False);
+    if (kde_force_comp != None) {
+      unsigned long force = 1;
+      XChangeProperty(display, window, kde_force_comp, XA_CARDINAL, 32,
+                      PropModeReplace, (unsigned char *)&force, 1);
+    }
+
+    Atom bypass_comp = XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False);
+    if (bypass_comp != None) {
+      unsigned long bypass = 0;
+      XChangeProperty(display, window, bypass_comp, XA_CARDINAL, 32,
+                      PropModeReplace, (unsigned char *)&bypass, 1);
     }
   } else {
     Atom window_type_desktop =
@@ -189,6 +204,11 @@ X11Details initX11(uint32_t location_x, uint32_t location_y, uint32_t size_x,
   }
 
   XMapWindow(display, window);
+
+  XClearWindow(display, window);
+
+  XSetWindowColormap(display, window, attrs.colormap);
+  XFlush(display);
 
   XSelectInput(display, window,
                ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
